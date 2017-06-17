@@ -1,0 +1,278 @@
+lab@vMX-1> file show fbf.config | no-more
+## Last changed: 2017-05-13 02:12:57 UTC
+version 14.1R1.10;
+groups {
+    ospf {
+        logical-systems {
+            <*> {
+                protocols {
+                    ospf {
+                        area 0.0.0.0 {
+                            interface all;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+apply-groups ospf;
+system {
+    host-name vMX-1;
+    root-authentication {
+        encrypted-password "$1$iiqdh9ru$CBQygri2MkpfgtgdGo8GO1"; ## SECRET-DATA
+    }
+    login {
+        user lab {
+            uid 2000;
+            class super-user;
+            authentication {
+                encrypted-password "$1$oW1NeMUu$N7IVMfy8GfJ02jzQzJ39h/"; ## SECRET-DATA
+            }
+        }
+    }
+    services {
+        telnet {
+            connection-limit 5;
+        }
+    }
+    syslog {
+        user * {
+            any emergency;
+        }
+        file messages {
+            any notice;
+            authorization info;
+        }
+        file interactive-commands {
+            interactive-commands any;
+        }
+    }
+}
+logical-systems {
+    ls1 {
+        interfaces {
+            ge-0/0/2 {
+                unit 0;
+            }
+            lo0 {
+                unit 1 {
+                    family inet {
+                        address 1.1.1.1/32;
+                    }
+                }
+            }
+        }
+    }
+    ls2 {
+        interfaces {
+            ge-0/0/4 {
+                unit 0;
+            }
+            lo0 {
+                unit 2 {
+                    family inet {
+                        address 2.2.2.2/32;
+                    }
+                }
+            }
+        }
+    }
+    ls3 {
+        interfaces {
+            ge-0/0/6 {
+                unit 13;
+                unit 35;
+            }
+        }
+    }
+    ls4 {
+        interfaces {
+            ge-0/0/6 {
+                unit 14;
+                unit 45;
+            }
+        }
+    }
+    ls5 {
+        interfaces {
+            ge-0/0/5 {
+                unit 35;
+                unit 45;
+            }
+            lo0 {
+                unit 5 {
+                    family inet {
+                        address 5.5.5.5/32;
+                    }
+                }
+            }
+        }
+    }
+}
+interfaces {
+    ge-0/0/0 {
+        unit 0 {
+            family inet {
+                address 192.168.192.227/24;
+            }
+        }
+    }
+    ge-0/0/1 {
+        unit 0 {
+            family inet {
+                filter {
+                    input fbf1;
+                }
+                address 1.1.12.1/24;
+            }
+        }
+    }
+    ge-0/0/2 {
+        unit 0 {
+            family inet {
+                address 1.1.12.2/24;
+            }
+        }
+    }
+    ge-0/0/3 {
+        unit 0 {
+            family inet {
+                filter {
+                    input fbf2;
+                }
+                address 2.2.12.1/24;
+            }
+        }
+    }
+    ge-0/0/4 {
+        unit 0 {
+            family inet {
+                address 2.2.12.2/24;
+            }
+        }
+    }
+    ge-0/0/5 {
+        vlan-tagging;
+        unit 13 {
+            vlan-id 13;
+            family inet {
+                address 3.3.13.1/24;
+            }
+        }
+        unit 14 {
+            vlan-id 14;
+            family inet {
+                address 4.4.14.1/24;
+            }
+        }
+        unit 35 {
+            vlan-id 35;
+            family inet {
+                address 5.5.35.2/24;
+            }
+        }
+        unit 45 {
+            vlan-id 45;
+            family inet {
+                address 6.6.45.2/24;
+            }
+        }
+    }
+    ge-0/0/6 {
+        vlan-tagging;
+        unit 13 {
+            vlan-id 13;
+            family inet {
+                address 3.3.13.2/24;
+            }
+        }
+        unit 14 {
+            vlan-id 14;
+            family inet {
+                address 4.4.14.2/24;
+            }
+        }
+        unit 35 {
+            vlan-id 35;
+            family inet {
+                address 5.5.35.1/24;
+            }
+        }
+        unit 45 {
+            vlan-id 45;
+            family inet {
+                address 6.6.45.1/24;
+            }
+        }
+    }
+    lo0 {
+        unit 0 {
+            family inet {
+                address 10.10.10.10/32;
+            }
+        }
+    }
+}
+routing-options {
+    interface-routes {
+        rib-group inet fbf1;
+    }
+    rib-groups {
+        fbf1 {
+            import-rib [ inet.0 fbf1.inet.0 fbf2.inet.0 ];
+        }
+    }
+}
+protocols {
+    ospf {
+        rib-group fbf1;
+        area 0.0.0.0 {
+            interface all;
+        }
+    }
+}
+firewall {
+    family inet {
+        filter fbf1 {
+            term 1 {
+                from {
+                    source-address {
+                        1.1.1.1/32;
+                    }
+                }
+                then {
+                    count FBF1PACKETS;
+                    routing-instance fbf1;
+                }
+            }
+            term 2 {
+                then accept;
+            }
+        }
+        filter fbf2 {
+            term 1 {
+                from {
+                    source-address {
+                        2.2.2.2/32;
+                    }
+                }
+                then {
+                    count FBF2PACKETS;
+                    routing-instance fbf2;
+                }
+            }
+            term 2 {
+                then accept;
+            }
+        }
+    }
+}
+routing-instances {
+    fbf1 {
+        instance-type forwarding;
+    }
+    fbf2 {
+        instance-type forwarding;
+    }
+}
